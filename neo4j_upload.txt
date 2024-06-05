@@ -1,0 +1,32 @@
+// Clear DB
+match (n) detach delete n
+
+
+// Load in data
+LOAD CSV WITH HEADERS FROM 'file:///spotify_samples.csv' AS line
+CREATE (:Song {id: line.track_id, title: line.track_name, artists: line.artists, album: line.album_name, genre: line.track_genre})
+
+
+// Create nodes and edges
+LOAD CSV WITH HEADERS FROM 'file:///song_similarities.csv' AS line
+MERGE (source:Song {id:line.source})
+MERGE (target:Song {id:line.target})
+MERGE (source)-[r:similar]-(target)
+SET r.similar = line.similar
+
+
+// Graph representation
+MATCH (strokes:Song {album: "Is This It"})
+MATCH (strokes)-[r:similar]-(s:Song)
+WHERE s.artists <> "The Strokes"
+RETURN strokes, s
+ORDER BY r.similar
+
+
+// Generate table of 5 song recs
+MATCH (strokes:Song {album: "Is This It"})
+MATCH (strokes)-[r:similar]-(s:Song)
+WHERE s.artists <> "The Strokes"
+RETURN DISTINCT s.title, s.artists, s.album, s.id, s.genre, r.similar
+ORDER BY r.similar
+LIMIT 5
